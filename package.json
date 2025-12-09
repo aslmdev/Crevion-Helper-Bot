@@ -1,0 +1,41 @@
+{
+  "name": "crevion-bot",
+  "version": "2.0.0",
+  "description": "Crevion Community Bot - Ultimate creative hub bot with AI-powered tools",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "deploy": "node scripts/deploy-commands.js",
+    "setup": "node scripts/setup.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "creative",
+    "community",
+    "ai",
+    "claude",
+    "design",
+    "programming"
+  ],
+  "author": "Crevion Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "canvas": "^3.2.0",
+    "discord.js": "^14.24.2",
+    "dotenv": "^17.2.3",
+    "node-fetch": "^3.3.2",
+    "node-vibrant": "^4.0.3",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
