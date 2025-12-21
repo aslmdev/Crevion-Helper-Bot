@@ -1,4 +1,4 @@
-// src/utils/aiManager.js - DUAL AI SYSTEM (DeepSeek + Groq)
+// src/utils/aiManager.js - FIXED WITH NEW GROQ MODELS
 
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
@@ -8,19 +8,19 @@ dotenv.config();
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
-// AI Models Configuration
+// AI Models Configuration - UPDATED WITH NEW GROQ MODELS
 const AI_MODELS = {
     GROQ: {
         name: 'Groq',
         baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
-        model: 'mixtral-8x7b-32768', // Fast and powerful
+        model: 'llama-3.3-70b-versatile', // ✅ NEW MODEL (replaces mixtral)
         strengths: ['code_generation', 'problem_solving', 'speed'],
         maxTokens: 8000
     },
     DEEPSEEK: {
         name: 'DeepSeek',
         baseUrl: 'https://api.deepseek.com/v1/chat/completions',
-        model: 'deepseek-chat', // Best for coding
+        model: 'deepseek-chat',
         strengths: ['code_explanation', 'debugging', 'optimization'],
         maxTokens: 4000
     }
@@ -28,14 +28,14 @@ const AI_MODELS = {
 
 // Task types and their best AI
 const TASK_AI_MAP = {
-    code_generation: 'GROQ',      // Groq faster for generation
-    code_explanation: 'DEEPSEEK', // DeepSeek better at explaining
-    code_review: 'DEEPSEEK',      // DeepSeek more detailed
-    debugging: 'DEEPSEEK',        // DeepSeek better at finding bugs
-    optimization: 'DEEPSEEK',     // DeepSeek better at optimization
-    general: 'GROQ',              // Groq for general questions
-    design: 'GROQ',               // Groq for design advice
-    quick_answer: 'GROQ'          // Groq is faster
+    code_generation: 'GROQ',
+    code_explanation: 'DEEPSEEK',
+    code_review: 'DEEPSEEK',
+    debugging: 'DEEPSEEK',
+    optimization: 'DEEPSEEK',
+    general: 'GROQ',
+    design: 'GROQ',
+    quick_answer: 'GROQ'
 };
 
 class DualAIManager {
@@ -46,26 +46,22 @@ class DualAIManager {
         if (!this.groqAvailable && !this.deepseekAvailable) {
             console.error('❌ No AI APIs configured!');
         } else {
-            console.log(`✅ AI System: ${this.groqAvailable ? 'Groq✓' : ''} ${this.deepseekAvailable ? 'DeepSeek✓' : ''}`);
+            console.log(`✅ AI System: ${this.groqAvailable ? 'Groq(llama-3.3)✓' : ''} ${this.deepseekAvailable ? 'DeepSeek✓' : ''}`);
         }
     }
 
-    // Select best AI for task
     selectAI(taskType) {
         const preferredAI = TASK_AI_MAP[taskType] || 'GROQ';
         
-        // Fallback logic
         if (preferredAI === 'GROQ' && this.groqAvailable) return AI_MODELS.GROQ;
         if (preferredAI === 'DEEPSEEK' && this.deepseekAvailable) return AI_MODELS.DEEPSEEK;
         
-        // Fallback to available AI
         if (this.groqAvailable) return AI_MODELS.GROQ;
         if (this.deepseekAvailable) return AI_MODELS.DEEPSEEK;
         
         return null;
     }
 
-    // Make AI request
     async request(taskType, systemPrompt, userMessage, conversationHistory = []) {
         const ai = this.selectAI(taskType);
         
@@ -76,7 +72,7 @@ class DualAIManager {
         const apiKey = ai.name === 'Groq' ? GROQ_API_KEY : DEEPSEEK_API_KEY;
 
         try {
-            console.log(`🤖 Using ${ai.name} for ${taskType}`);
+            console.log(`🤖 Using ${ai.name} (${ai.model}) for ${taskType}`);
 
             const response = await fetch(ai.baseUrl, {
                 method: 'POST',
@@ -117,83 +113,51 @@ class DualAIManager {
         } catch (error) {
             console.error(`❌ ${ai.name} error:`, error.message);
             
-            // Auto-fallback to other AI
+            // Auto-fallback to other AI (ONLY ONCE)
             if (ai.name === 'Groq' && this.deepseekAvailable) {
                 console.log('🔄 Falling back to DeepSeek...');
-                return await this.request('general', systemPrompt, userMessage, conversationHistory);
-            } else if (ai.name === 'DeepSeek' && this.groqAvailable) {
-                console.log('🔄 Falling back to Groq...');
-                return await this.request('general', systemPrompt, userMessage, conversationHistory);
+                
+                try {
+                    const fallbackResponse = await fetch(AI_MODELS.DEEPSEEK.baseUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model: AI_MODELS.DEEPSEEK.model,
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                ...conversationHistory,
+                                { role: 'user', content: userMessage }
+                            ],
+                            max_tokens: AI_MODELS.DEEPSEEK.maxTokens,
+                            temperature: 0.7
+                        }),
+                        timeout: 30000
+                    });
+                    
+                    if (fallbackResponse.ok) {
+                        const data = await fallbackResponse.json();
+                        return {
+                            content: data.choices[0].message.content,
+                            model: 'DeepSeek',
+                            tokensUsed: data.usage?.total_tokens || 0
+                        };
+                    }
+                } catch (fallbackError) {
+                    console.error('❌ Fallback also failed:', fallbackError.message);
+                }
             }
             
             throw error;
         }
     }
 
-    // ✨ NEW: Get best response by trying both AIs (for critical tasks)
-    async getBestResponse(taskType, systemPrompt, userMessage) {
-        if (!this.groqAvailable || !this.deepseekAvailable) {
-            // If only one available, use that
-            return await this.request(taskType, systemPrompt, userMessage);
-        }
-
-        try {
-            // Try both in parallel for critical tasks
-            const [groqResponse, deepseekResponse] = await Promise.allSettled([
-                this.makeRequest(AI_MODELS.GROQ, GROQ_API_KEY, systemPrompt, userMessage),
-                this.makeRequest(AI_MODELS.DEEPSEEK, DEEPSEEK_API_KEY, systemPrompt, userMessage)
-            ]);
-
-            // Return the first successful response
-            if (groqResponse.status === 'fulfilled') {
-                return { content: groqResponse.value, model: 'Groq' };
-            }
-            if (deepseekResponse.status === 'fulfilled') {
-                return { content: deepseekResponse.value, model: 'DeepSeek' };
-            }
-
-            throw new Error('Both AIs failed');
-
-        } catch (error) {
-            console.error('❌ Both AIs failed:', error.message);
-            throw error;
-        }
-    }
-
-    // Helper: Make single API request
-    async makeRequest(ai, apiKey, systemPrompt, userMessage) {
-        const response = await fetch(ai.baseUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: ai.model,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userMessage }
-                ],
-                max_tokens: ai.maxTokens,
-                temperature: 0.7
-            }),
-            timeout: 30000
-        });
-
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.choices[0].message.content;
-    }
-
-    // Check availability
     isAvailable() {
         return this.groqAvailable || this.deepseekAvailable;
     }
 
-    // Get status
     getStatus() {
         return {
             groq: this.groqAvailable,
@@ -203,23 +167,35 @@ class DualAIManager {
     }
 }
 
-// Export singleton
 export const aiManager = new DualAIManager();
 
-// System prompts for different tasks
+// System prompts
 export const SYSTEM_PROMPTS = {
-    general: `You are Crevion AI, an elite assistant for developers and designers.
+    general: `You are Crevion AI, an elite assistant for developers and designers at Crevion Community.
+
+**Your Role:**
+- Help developers learn and grow
+- Provide clear, practical solutions
+- Be encouraging and supportive
+- Match the user's language (Arabic or English)
 
 **Expertise:**
-- Programming: JS, TS, Python, React, Node.js, Discord.js
-- Design: UI/UX, Color Theory, Web Design
-- Problem Solving: Algorithms, Data Structures
+- Programming: JavaScript, TypeScript, Python, React, Node.js, Discord.js
+- Design: UI/UX, Color Theory, Web Design, CSS
+- Problem Solving: Algorithms, Data Structures, Debugging
 
-**Style:**
-- Be helpful and precise
-- Use emojis for clarity
-- Provide working examples
-- Be encouraging`,
+**Communication Style:**
+- Be natural and conversational (like talking to a friend)
+- Use emojis sparingly (only when they add value)
+- Give complete, working solutions
+- Explain concepts clearly
+- Be encouraging and positive
+
+**CRITICAL RULES:**
+- NEVER mention your AI model name in responses
+- NEVER add signatures like "- Groq" or "- DeepSeek" at the end
+- Match the user's language exactly (if they speak Arabic, respond in Arabic only)
+- Focus on being helpful, not on branding`,
 
     code_generation: `You are an expert programmer. Generate clean, production-ready code.
 
@@ -236,8 +212,7 @@ export const SYSTEM_PROMPTS = {
 - Start with simple explanations
 - Use analogies and examples
 - Break down complex topics step-by-step
-- Highlight important concepts
-- Encourage questions`,
+- Highlight important concepts`,
 
     debugging: `You are a debugging expert. Find issues and provide solutions.
 
@@ -245,8 +220,7 @@ export const SYSTEM_PROMPTS = {
 - Identify all potential bugs
 - Explain why they occur
 - Provide fixed code
-- Suggest prevention tips
-- Test edge cases`,
+- Suggest prevention tips`,
 
     optimization: `You are a performance optimization expert.
 
@@ -254,8 +228,7 @@ export const SYSTEM_PROMPTS = {
 - Identify bottlenecks
 - Suggest optimizations
 - Provide benchmarks
-- Explain trade-offs
-- Show before/after code`,
+- Explain trade-offs`,
 
     design: `You are a UI/UX design expert.
 
@@ -267,7 +240,6 @@ export const SYSTEM_PROMPTS = {
 - Accessibility tips`
 };
 
-// Helper: Detect task type from message
 export function detectTaskType(message) {
     const lower = message.toLowerCase();
     
