@@ -1,4 +1,4 @@
-// src/commands/owner/challenges.js - Challenge Management Command
+// src/commands/owner/challenges.js
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';

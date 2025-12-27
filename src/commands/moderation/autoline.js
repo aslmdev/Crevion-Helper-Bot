@@ -1,3 +1,5 @@
+// src/commands/moderation/autoline.js
+
 import { SlashCommandBuilder, ChannelType } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';
 import { autoLine } from '../../utils/autoline.js';

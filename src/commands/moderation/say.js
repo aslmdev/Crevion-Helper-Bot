@@ -1,3 +1,5 @@
+// src/commands/moderation/say.js
+
 import { SlashCommandBuilder, ChannelType, EmbedBuilder } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';
 import { config } from '../../config/config.js';

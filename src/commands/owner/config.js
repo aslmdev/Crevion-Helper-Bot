@@ -1,4 +1,4 @@
-// src/commands/owner/config.js - Bot Configuration Management
+// src/commands/owner/config.js
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';

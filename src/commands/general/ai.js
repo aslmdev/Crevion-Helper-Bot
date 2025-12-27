@@ -1,4 +1,4 @@
-// src/commands/general/ai.js - UPDATED with Task-Optimized AI Selection
+// src/commands/general/ai.js
 
 import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';

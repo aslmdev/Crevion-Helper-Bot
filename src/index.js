@@ -1,4 +1,4 @@
-// src/index.js - Updated with MongoDB Integration
+// src/index.js
 
 import { Client, GatewayIntentBits, Events, Collection, ActivityType } from 'discord.js';
 import { readdirSync, existsSync } from 'fs';

@@ -1,4 +1,4 @@
-// src/models/index.js - MongoDB Models & Functions
+// src/models/index.js
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';

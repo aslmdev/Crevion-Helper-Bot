@@ -1,4 +1,4 @@
-// src/commands/owner/voice.js - Voice Channel Management
+// src/commands/owner/voice.js
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { joinVoiceChannel, getVoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
@@ -8,7 +8,7 @@ import { getConfig, updateConfig } from '../../models/index.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('voice')
-        .setDescription('Manage bot voice channel presence')
+        .setDescription('👑 Manage bot voice channel presence (Owner Only)')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('join')
@@ -42,7 +42,7 @@ export default {
                 )
         ),
 
-    permission: PermissionLevels.ADMIN,
+    permission: PermissionLevels.OWNER, // ✅ Owner Only
 
     async execute(interaction, client) {
         const subcommand = interaction.options.getSubcommand();
@@ -59,12 +59,12 @@ export default {
     }
 };
 
-// Join voice channel
+// ... (rest of the file stays the same)
+
 async function handleJoinVoice(interaction, client) {
     try {
         let channel = interaction.options.getChannel('channel');
         
-        // If no channel specified, use default or user's current channel
         if (!channel) {
             const dbConfig = await getConfig();
             const defaultChannelId = dbConfig?.channels?.defaultVoice;
@@ -84,8 +84,7 @@ async function handleJoinVoice(interaction, client) {
             }
         }
 
-        // Check if it's a voice channel
-        if (channel.type !== 2) { // 2 = Voice Channel
+        if (channel.type !== 2) {
             return await interaction.reply({
                 embeds: [{
                     color: 0xED4245,
@@ -97,7 +96,6 @@ async function handleJoinVoice(interaction, client) {
             });
         }
 
-        // Join the voice channel
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: interaction.guild.id,
@@ -106,7 +104,6 @@ async function handleJoinVoice(interaction, client) {
             selfMute: true
         });
 
-        // Handle connection events
         connection.on(VoiceConnectionStatus.Ready, () => {
             console.log(`🎤 Bot joined voice channel: ${channel.name}`);
         });
@@ -153,7 +150,6 @@ async function handleJoinVoice(interaction, client) {
     }
 }
 
-// Leave voice channel
 async function handleLeaveVoice(interaction, client) {
     try {
         const connection = getVoiceConnection(interaction.guild.id);
@@ -200,7 +196,6 @@ async function handleLeaveVoice(interaction, client) {
     }
 }
 
-// Check voice status
 async function handleVoiceStatus(interaction, client) {
     try {
         const connection = getVoiceConnection(interaction.guild.id);
@@ -257,7 +252,6 @@ async function handleVoiceStatus(interaction, client) {
     }
 }
 
-// Set default voice channel
 async function handleSetDefaultVoice(interaction) {
     try {
         const channel = interaction.options.getChannel('channel');
@@ -308,7 +302,6 @@ async function handleSetDefaultVoice(interaction) {
     }
 }
 
-// Export auto-join function for use in ready event
 export async function autoJoinVoice(client) {
     try {
         const dbConfig = await getConfig();

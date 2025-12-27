@@ -1,3 +1,5 @@
+// src/commands/general/info.js
+
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';
 import { config } from '../../config/config.js';

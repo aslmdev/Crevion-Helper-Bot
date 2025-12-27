@@ -1,7 +1,6 @@
-// src/commands/owner/line.js - FIXED VERSION WITH DISCORD CDN SUPPORT
+// src/commands/owner/line.js
 
 import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from 'discord.js';
-import { PermissionFlagsBits } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';
 import { getConfig, updateConfig } from '../../models/index.js';
 import fetch from 'node-fetch';
@@ -9,7 +8,7 @@ import fetch from 'node-fetch';
 export default {
     data: new SlashCommandBuilder()
         .setName('line')
-        .setDescription('Manage server line/divider image')
+        .setDescription('👑 Manage server line/divider image (Owner Only)')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
@@ -37,7 +36,7 @@ export default {
                 .setDescription('Remove the line image')
         ),
 
-    permission: PermissionLevels.ADMIN,
+    permission: PermissionLevels.OWNER, // ✅ Owner Only
     prefixAlias: 'line',
 
     async execute(interaction, client) {
@@ -81,14 +80,17 @@ export default {
     }
 };
 
-// ✅ Set line URL - FIXED TO ACCEPT DISCORD CDN
+// ═══════════════════════════════════════════════════════════════
+// ⚙️ SET LINE URL
+// ═══════════════════════════════════════════════════════════════
+
 async function handleSetLine(interaction) {
     try {
         await interaction.deferReply({ ephemeral: true });
 
         const url = interaction.options.getString('url');
 
-        // ✅ FIXED: Accept Discord CDN URLs and any image URL
+        // ✅ Validate URL
         if (!url.match(/^https?:\/\/.+/i)) {
             return await interaction.editReply({
                 embeds: [{
@@ -100,17 +102,26 @@ async function handleSetLine(interaction) {
             });
         }
 
-        // ✅ Test the URL by fetching it
+        // ✅ Test URL with better error handling
         try {
-            const response = await fetch(url, { method: 'HEAD', timeout: 5000 });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(url, { 
+                method: 'HEAD', 
+                signal: controller.signal,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
             
+            clearTimeout(timeout);
+
             if (!response.ok) {
-                throw new Error('Failed to fetch image');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const contentType = response.headers.get('content-type');
-            
-            // ✅ FIXED: Accept Discord CDN (which may not return proper content-type)
             const isDiscordCDN = url.includes('cdn.discordapp.com') || url.includes('media.discordapp.net');
             const isImage = contentType && contentType.startsWith('image/');
             
@@ -126,11 +137,21 @@ async function handleSetLine(interaction) {
             }
             
         } catch (error) {
+            let errorMsg = `Could not load the image from this URL.`;
+            
+            if (error.name === 'AbortError') {
+                errorMsg = 'Request timed out (took longer than 8 seconds).';
+            } else if (error.message.includes('HTTP')) {
+                errorMsg = `Server returned error: ${error.message}`;
+            } else if (error.message.includes('ENOTFOUND')) {
+                errorMsg = 'URL domain not found. Check if the URL is correct.';
+            }
+            
             return await interaction.editReply({
                 embeds: [{
                     color: 0xED4245,
                     title: '❌ Invalid Image URL',
-                    description: `Could not load the image from this URL.\n\n**Error:** ${error.message}\n\n**Tips:**\n• Make sure the URL is accessible\n• Try uploading to Discord and copying the link\n• Use Imgur or other image hosting`,
+                    description: `${errorMsg}\n\n**Tips:**\n• Make sure the URL is accessible\n• Try uploading to Discord and copying the link\n• Use Imgur or other image hosting`,
                     footer: { text: 'Crévion' }
                 }]
             });
@@ -148,7 +169,7 @@ async function handleSetLine(interaction) {
             .addFields(
                 { name: '🔗 URL', value: `[Click to view](${url})`, inline: false },
                 { name: '👤 Set By', value: interaction.user.tag, inline: true },
-                { name: '💡 Usage', value: 'Type `خط` or `line` in chat to send', inline: true }
+                { name: '💡 Usage', value: 'Type `خط` or `line` in chat to send\n*(Only for users with line permissions)*', inline: true }
             )
             .setImage(url)
             .setFooter({ text: 'Saved to crevion_db' })
@@ -235,12 +256,32 @@ async function handleTestLine(interaction) {
             });
         }
 
-        const response = await fetch(lineUrl);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(lineUrl, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        clearTimeout(timeout);
+
         if (!response.ok) {
-            throw new Error('Failed to fetch image');
+            throw new Error(`HTTP ${response.status}`);
         }
 
         const buffer = await response.arrayBuffer();
+        
+        if (buffer.byteLength === 0) {
+            throw new Error('Empty image');
+        }
+        
+        if (buffer.byteLength > 8 * 1024 * 1024) {
+            throw new Error('Image too large (max 8MB)');
+        }
+
         const attachment = new AttachmentBuilder(Buffer.from(buffer), { name: 'line.png' });
 
         await interaction.editReply({
@@ -250,11 +291,24 @@ async function handleTestLine(interaction) {
 
     } catch (error) {
         console.error('❌ Error testing line:', error);
+        
+        let errorMsg = 'Could not load the line image.';
+        
+        if (error.name === 'AbortError') {
+            errorMsg = 'Request timed out (took longer than 8 seconds).';
+        } else if (error.message.includes('HTTP')) {
+            errorMsg = `Server error: ${error.message}`;
+        } else if (error.message.includes('Empty')) {
+            errorMsg = 'Image file is empty or corrupted.';
+        } else if (error.message.includes('too large')) {
+            errorMsg = 'Image is too large (maximum 8MB).';
+        }
+        
         await interaction.editReply({
             embeds: [{
                 color: 0xED4245,
                 title: '❌ Test Failed',
-                description: 'Could not load the line image. The URL might be invalid or inaccessible.',
+                description: errorMsg + '\n\n**Solution:**\n• Upload image to Discord and copy link\n• Use Imgur or other hosting\n• Make sure URL is accessible',
                 footer: { text: 'Crévion' }
             }]
         }).catch(() => {});
@@ -296,7 +350,10 @@ async function handleRemoveLine(interaction) {
     }
 }
 
-// Prefix versions
+// ═══════════════════════════════════════════════════════════════
+// 📝 PREFIX VERSIONS
+// ═══════════════════════════════════════════════════════════════
+
 async function handleSetLinePrefix(message, url) {
     try {
         if (!url.match(/^https?:\/\/.+/i)) {

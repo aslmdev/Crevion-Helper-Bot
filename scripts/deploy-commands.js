@@ -4,13 +4,11 @@ import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import dotenv from 'dotenv';
 
-// Load environment variables
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Validate environment variables
 if (!process.env.DISCORD_TOKEN) {
     console.error('❌ ERROR: DISCORD_TOKEN is missing in .env file!');
     console.log('💡 Please add your bot token to the .env file');

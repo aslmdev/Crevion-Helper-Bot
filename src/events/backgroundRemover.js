@@ -1,3 +1,5 @@
+// src/events/backgroundRemover.js
+
 import { Events, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { config } from '../config/config.js';
 import fetch from 'node-fetch';

@@ -1,4 +1,4 @@
-// src/commands/general/help.js - FIXED: Hierarchical Permission Display
+// src/commands/general/help.js
 
 import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { getConfig } from '../../models/index.js';

@@ -1,4 +1,4 @@
-// src/events/aiAssistant.js - ULTRA PROFESSIONAL AI SYSTEM 🔥
+// src/events/aiAssistant.js
 
 import { Events, AttachmentBuilder } from 'discord.js';
 import { aiManager, SYSTEM_PROMPTS, detectTaskType } from '../utils/aiManager.js';

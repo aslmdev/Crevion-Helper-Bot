@@ -1,3 +1,5 @@
+// src/commands/general/stats.js
+
 import { SlashCommandBuilder, version as djsVersion } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';
 import { config } from '../../config/config.js';

@@ -1,4 +1,4 @@
-// src/events/interactionCreate.js - UPDATED FOR NEW DASHBOARD 🚀
+// src/events/interactionCreate.js
 
 import { Events, EmbedBuilder } from 'discord.js';
 import { getConfig } from '../models/index.js';
@@ -9,9 +9,13 @@ import {
     handlePermissionButtons, 
     handleAddRoleToLevel, 
     handleRemoveRoleFromLevel,
-    handleResetConfirm,
     handleLineAccessAdd,
-    handleLineAccessRemove
+    handleLineAccessRemove,
+    handleOwnerRemoveSelect,
+    handleUserRemoveSelect,
+    handleCommandSelect,
+    handleCommandLevelSelect,
+    handleCommandRemoveSelect
 } from '../commands/owner/permissions.js';
 import { PermissionLevels, getPermissionLevelName, getUserPermissionLevel } from '../utils/permissions.js';
 
@@ -76,6 +80,26 @@ async function handleSelectMenu(interaction, client) {
     }
     
     // ───────────────────────────────────────────────────────────────
+    // 🔒 SECURITY CHECK FOR PERMISSIONS DASHBOARD
+    // ───────────────────────────────────────────────────────────────
+    if (customId.startsWith('perm_')) {
+        // ✅ CHECK IF USER IS OWNER
+        const { isOwner } = await import('../utils/permissions.js');
+        
+        if (!await isOwner(interaction.user.id)) {
+            return await interaction.reply({
+                embeds: [{
+                    color: 0xED4245,
+                    title: '🔒 Access Denied',
+                    description: '❌ **Owner Only**\n\nYou must be a bot owner to use the permissions dashboard.',
+                    footer: { text: 'Crévion Security' }
+                }],
+                ephemeral: true
+            });
+        }
+    }
+    
+    // ───────────────────────────────────────────────────────────────
     // 🎛️ PERMISSIONS - Main Menu
     // ───────────────────────────────────────────────────────────────
     if (customId === 'perm_main_menu') {
@@ -108,6 +132,46 @@ async function handleSelectMenu(interaction, client) {
         const level = customId.replace('perm_remove_role_', '');
         const roleIds = interaction.values;
         await handleRemoveRoleFromLevel(interaction, level, roleIds);
+        return;
+    }
+    
+    // ───────────────────────────────────────────────────────────────
+    // 👑 OWNER - Remove Select
+    // ───────────────────────────────────────────────────────────────
+    if (customId === 'perm_owner_remove_select') {
+        await handleOwnerRemoveSelect(interaction);
+        return;
+    }
+    
+    // ───────────────────────────────────────────────────────────────
+    // 👤 USER - Remove Select
+    // ───────────────────────────────────────────────────────────────
+    if (customId === 'perm_user_remove_select') {
+        await handleUserRemoveSelect(interaction);
+        return;
+    }
+    
+    // ───────────────────────────────────────────────────────────────
+    // ⚙️ COMMAND - Select Command
+    // ───────────────────────────────────────────────────────────────
+    if (customId === 'perm_cmd_select') {
+        await handleCommandSelect(interaction);
+        return;
+    }
+    
+    // ───────────────────────────────────────────────────────────────
+    // ⚙️ COMMAND - Select Level
+    // ───────────────────────────────────────────────────────────────
+    if (customId.startsWith('perm_cmd_level_')) {
+        await handleCommandLevelSelect(interaction);
+        return;
+    }
+    
+    // ───────────────────────────────────────────────────────────────
+    // ⚙️ COMMAND - Remove Select
+    // ───────────────────────────────────────────────────────────────
+    if (customId === 'perm_cmd_remove_select') {
+        await handleCommandRemoveSelect(interaction);
         return;
     }
     
@@ -162,9 +226,24 @@ async function handleButton(interaction, client) {
     }
     
     // ───────────────────────────────────────────────────────────────
-    // 🎛️ PERMISSIONS DASHBOARD BUTTONS
+    // 🔒 SECURITY CHECK FOR PERMISSIONS DASHBOARD BUTTONS
     // ───────────────────────────────────────────────────────────────
     if (customId.startsWith('perm_')) {
+        // ✅ CHECK IF USER IS OWNER
+        const { isOwner } = await import('../utils/permissions.js');
+        
+        if (!await isOwner(interaction.user.id)) {
+            return await interaction.reply({
+                embeds: [{
+                    color: 0xED4245,
+                    title: '🔒 Access Denied',
+                    description: '❌ **Owner Only**\n\nYou must be a bot owner to use the permissions dashboard.',
+                    footer: { text: 'Crévion Security' }
+                }],
+                ephemeral: true
+            });
+        }
+        
         await handlePermissionButton(interaction, client);
         return;
     }
@@ -304,45 +383,8 @@ async function handleBotInfo(interaction, client) {
 async function handlePermissionButton(interaction, client) {
     const customId = interaction.customId;
 
-    // Back to main dashboard
-    if (customId === 'perm_back_to_main') {
-        const { default: permCmd } = await import('../commands/owner/permissions.js');
-        await permCmd.execute(interaction, client);
-        return;
-    }
-
     // All dashboard buttons
-    if ([
-        'perm_view_all', 
-        'perm_reset_to_default',
-        'perm_user_add',
-        'perm_user_remove',
-        'perm_cmd_set',
-        'perm_cmd_remove'
-    ].includes(customId)) {
-        await handlePermissionButtons(interaction, client);
-        return;
-    }
-
-    // Confirm reset
-    if (customId === 'perm_confirm_reset') {
-        await handleResetConfirm(interaction);
-        return;
-    }
-
-    // Cancel reset
-    if (customId === 'perm_cancel_reset') {
-        await interaction.update({
-            embeds: [{
-                color: 0x57F287,
-                title: '✅ تم الإلغاء',
-                description: 'لم يتم إجراء أي تغييرات.',
-                footer: { text: 'Crévion' }
-            }],
-            components: []
-        });
-        return;
-    }
+    await handlePermissionButtons(interaction, client);
 }
 
 // ═══════════════════════════════════════════════════════════════

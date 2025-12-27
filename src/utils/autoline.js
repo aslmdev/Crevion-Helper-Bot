@@ -1,3 +1,5 @@
+// src/utils/autoline.js
+
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';

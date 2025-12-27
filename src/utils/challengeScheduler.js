@@ -1,4 +1,4 @@
-// src/utils/challengeScheduler.js - LEETCODE API INTEGRATION
+// src/utils/challengeScheduler.js
 
 import { Challenge, getConfig } from '../models/index.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';

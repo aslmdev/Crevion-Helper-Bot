@@ -1,3 +1,5 @@
+// src/commands/owner/prefix.js
+
 import { SlashCommandBuilder } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';
 import { config } from '../../config/config.js';

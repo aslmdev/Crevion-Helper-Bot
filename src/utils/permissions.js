@@ -1,4 +1,4 @@
-// src/utils/permissions.js - NEW ADVANCED SYSTEM 🚀
+// src/utils/permissions.js
 
 import { getConfig, updateConfig } from '../models/index.js';
 

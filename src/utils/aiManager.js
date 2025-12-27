@@ -1,4 +1,4 @@
-// src/utils/aiManager.js - FIXED WITH NEW GROQ MODELS
+// src/utils/aiManager.js
 
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';

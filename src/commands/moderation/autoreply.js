@@ -1,3 +1,5 @@
+// src/commands/moderation/autoreply.js
+
 import { SlashCommandBuilder } from 'discord.js';
 import { PermissionLevels } from '../../utils/permissions.js';
 import { autoReply } from '../../utils/autoreply.js';
